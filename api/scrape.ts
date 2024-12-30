@@ -1,8 +1,7 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
 import cheerio from 'cheerio';
 
-const handler = async (req: VercelRequest, res: VercelResponse) => {
+const handler = async (req, res) => {
   console.log('Request received:', req.method);
 
   if (req.method !== 'POST') {
@@ -36,6 +35,12 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+};
+
+export const config = {
+  api: {
+    bodyParser: true,
+  },
 };
 
 export default handler;
