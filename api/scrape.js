@@ -1,8 +1,8 @@
-const cors = require('cors');
-const axios = require('axios');
-const { CookieJar } = require('tough-cookie');
-const { wrapper } = require('axios-cookiejar-support');
-const cheerio = require('cheerio');
+import cors from 'cors';
+import axios from 'axios';
+import { CookieJar } from 'tough-cookie';
+import { wrapper } from 'axios-cookiejar-support';
+import * as cheerio from 'cheerio';
 
 // Initialize CORS middleware
 const corsMiddleware = cors({
@@ -241,7 +241,7 @@ async function scrapeData(username, password) {
 
     return formattedData;
 
-  } catch (error) {
+  } } catch (error) {
     console.error('Error during scraping:', error);
     throw error;
   }
@@ -249,25 +249,45 @@ async function scrapeData(username, password) {
 
 // Vercel serverless handler
 export default async function handler(req, res) {
-  // Run the CORS middleware
-  await new Promise((resolve, reject) => {
-    corsMiddleware(req, res, (result) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
+  console.log('Received request:', {
+    method: req.method,
+    headers: req.headers,
+    body: req.body ? 'Present' : 'Missing'
   });
 
-  // Only allow POST method
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
-  }
-
   try {
+    // Run the CORS middleware
+    await new Promise((resolve, reject) => {
+      corsMiddleware(req, res, (result) => {
+        if (result instanceof Error) {
+          return reject(result);
+        }
+        return resolve(result);
+      });
+    });
+
+    // Only allow POST method
+    if (req.method !== 'POST') {
+      console.log('Method not allowed:', req.method);
+      return res.status(405).json({ 
+        success: false, 
+        error: 'Method not allowed' 
+      });
+    }
+
+    // Basic request validation
+    if (!req.body) {
+      console.log('No request body provided');
+      return res.status(400).json({ 
+        success: false, 
+        error: "Request body is required" 
+      });
+    }
+
     const { username, password } = req.body;
     
     if (!username || !password) {
+      console.log('Missing credentials in request');
       return res.status(400).json({ 
         success: false, 
         error: "Username and password are required" 
@@ -275,12 +295,16 @@ export default async function handler(req, res) {
     }
 
     const data = await scrapeData(username, password);
-    res.json({ success: true, data });
+    console.log('Scraping completed successfully');
+    res.status(200).json({ success: true, data });
+
   } catch (error) {
-    console.error('Error during scraping:', error);
-    res.status(error.message.includes('Invalid credentials') ? 401 : 500).json({ 
+    console.error('Error in handler:', error);
+    const statusCode = error.message.includes('Invalid credentials') ? 401 : 500;
+    res.status(statusCode).json({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
@@ -288,9 +312,7 @@ export default async function handler(req, res) {
 // Configure the API route
 export const config = {
   api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
+    bodyParser: true,
     externalResolver: true,
   },
 };
