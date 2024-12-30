@@ -1,5 +1,5 @@
-import axios from 'axios';
-import cheerio from 'cheerio';
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 const handler = async (req, res) => {
   console.log('Request received:', req.method);
@@ -37,10 +37,10 @@ const handler = async (req, res) => {
   }
 };
 
-export const config = {
+module.exports = handler;
+
+module.exports.config = {
   api: {
     bodyParser: true,
   },
 };
-
-export default handler;
