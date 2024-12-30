@@ -1,13 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
-const cors = require('cors');
 const { CookieJar } = require('tough-cookie');
 const { wrapper } = require('axios-cookiejar-support');
-
-// Initialize CORS middleware
-const corsMiddleware = cors({
-  methods: ['POST', 'GET', 'HEAD'],
-});
 
 async function scrapeData(username, password) {
   const jar = new CookieJar();
@@ -248,27 +242,36 @@ async function scrapeData(username, password) {
 }
 
 const handler = async (req, res) => {
-  console.log('Request received:', req.method);
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
   try {
-    // Run the CORS middleware
-    await new Promise((resolve, reject) => {
-      corsMiddleware(req, res, (result) => {
-        if (result instanceof Error) {
-          return reject(result);
-        }
-        return resolve(result);
-      });
-    });
-
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Method not allowed' });
+      return res.status(405).json({ 
+        success: false, 
+        error: 'Method not allowed' 
+      });
     }
 
+    console.log('Processing POST request with body:', req.body);
+    
     const { username, password } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({
+        success: false,
         error: 'Username and password required'
       });
     }
